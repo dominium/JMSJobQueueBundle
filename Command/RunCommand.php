@@ -301,7 +301,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             if ($data['process']->isRunning()) {
                 // For long running processes, it is nice to update the output status regularly.
                 $data['job']->addOutput($newOutput);
-                $data['job']->addErrorOutput();
+                $data['job']->addErrorOutput(null);
                 $data['job']->checked();
                 $em = $this->getEntityManager();
                 $em->persist($data['job']);
