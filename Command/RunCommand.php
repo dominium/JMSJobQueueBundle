@@ -64,7 +64,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->setDescription('Runs jobs from the queue.')
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
             ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
-            ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
+            ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time (microsecond) to sleep when the queue ran out of jobs.', 10000)
             ->addOption('queue', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'Restrict to one or more queues.', array())
             ->addOption('worker-name', null, InputOption::VALUE_REQUIRED, 'The name that uniquely identifies this worker process.')
         ;
@@ -203,7 +203,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             );
 
             if (null === $pendingJob) {
-                sleep($idleTime);
+                usleep($idleTime);
 
                 return;
             }
@@ -301,7 +301,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             if ($data['process']->isRunning()) {
                 // For long running processes, it is nice to update the output status regularly.
                 $data['job']->addOutput($newOutput);
-                $data['job']->addErrorOutput($newErrorOutput);
+                $data['job']->addErrorOutput();
                 $data['job']->checked();
                 $em = $this->getEntityManager();
                 $em->persist($data['job']);
@@ -310,7 +310,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 continue;
             }
 
-            $this->output->writeln($data['job'].' finished with exit code '.$data['process']->getExitCode().'.');
+            $this->output->writeln(date("Y-m-d\TH:i:s") . substr((string) microtime(), 1, 8) . " " . $data['job'].' finished with exit code '.$data['process']->getExitCode().'.');
 
             // If the Job exited with an exception, let's reload it so that we
             // get access to the stack trace. This might be useful for listeners.
@@ -352,8 +352,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $pb = $this->getCommandProcessBuilder();
         $pb
+            ->setEnv('jmsJobId', $job->getId())
             ->add($job->getCommand())
-            ->add('--jms-job-id='.$job->getId())
         ;
 
         foreach ($job->getArgs() as $arg) {
@@ -361,7 +361,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
         $proc = $pb->getProcess();
         $proc->start();
-        $this->output->writeln(sprintf('Started %s.', $job));
+        $this->output->writeln(date("Y-m-d\TH:i:s") . substr((string) microtime(), 1, 8) . " " . sprintf('Started %s.', $job));
 
         $this->runningJobs[] = array(
             'process' => $proc,
