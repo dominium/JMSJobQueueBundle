@@ -430,7 +430,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $pb
             ->add('php')
-            ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
+            ->add($this->getContainer()->getParameter('kernel.root_dir').'/../bin/console')
             ->add('--env='.$this->env)
         ;
 
