@@ -121,7 +121,7 @@ class JobRepository extends EntityRepository
     public function findStartableJob($workerName, array &$excludedIds = array(), $excludedQueues = array(), $restrictedQueues = array())
     {
         while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues, $restrictedQueues)) {
-            if ($job->isStartable() && $this->acquireLock($workerName, $job)) {
+            if ($job->isStartable()) {
                 return $job;
             }
 
@@ -224,8 +224,6 @@ class JobRepository extends EntityRepository
             ->addOrderBy('j.id', 'ASC');
 
         $conditions = array();
-
-        $conditions[] = $qb->expr()->isNull('j.workerName');
 
         $conditions[] = $qb->expr()->lt('j.executeAfter', ':now');
         $qb->setParameter(':now', new \DateTime(), 'datetime');
